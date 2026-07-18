@@ -13,4 +13,5 @@ public interface PostRepository {
 
     void deleteById(Long id);
 
+    List<Post> search(String keyword);
 }
