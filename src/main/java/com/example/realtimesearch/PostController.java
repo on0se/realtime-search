@@ -40,6 +40,11 @@ public class PostController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<Post>> searchPosts(@RequestParam String q) {
+        return ResponseEntity.ok(postService.searchPosts(q));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<String> handleValidationError(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());

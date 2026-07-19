@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 @Repository
 public class InMemoryPostRepository implements PostRepository {
@@ -35,5 +36,12 @@ public class InMemoryPostRepository implements PostRepository {
     @Override
     public void deleteById(Long id) {
         posts.removeIf(post -> post.getId().equals(id));
+    }
+
+    @Override
+    public List<Post> search(String keyword) {
+        return posts.stream()
+                .filter(post -> post.getContent() != null && post.getContent().contains(keyword))
+                .collect(Collectors.toList());
     }
 }
