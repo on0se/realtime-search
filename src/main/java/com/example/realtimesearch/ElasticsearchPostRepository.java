@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicLong;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
 
@@ -18,6 +19,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
 public class ElasticsearchPostRepository implements PostRepository {
 
     private final ElasticsearchOperations operations;
+    private final AtomicLong idCounter = new AtomicLong(1);
 
     public ElasticsearchPostRepository(ElasticsearchOperations operations) {
         this.operations = operations;
@@ -25,6 +27,9 @@ public class ElasticsearchPostRepository implements PostRepository {
 
     @Override
     public Post save(Post post) {
+        if (post.getId() == null) {
+            post.setId(idCounter.getAndIncrement());
+        }
         PostDocument document = toDocument(post);
         PostDocument saved = operations.save(document);
         return toPost(saved);
