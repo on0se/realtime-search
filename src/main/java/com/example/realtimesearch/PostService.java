@@ -37,4 +37,8 @@ public class PostService {
     public void deletePost(Long id) {
         postRepository.deleteById(id);
     }
+
+    public List<Post> searchPosts(String keyword) {
+        return postRepository.search(keyword);
+    }
 }
