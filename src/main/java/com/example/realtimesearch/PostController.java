@@ -46,6 +46,11 @@ public class PostController {
         return ResponseEntity.ok(postService.searchPosts(q));
     }
 
+    @GetMapping("/search/summary")
+    public  ResponseEntity<String> summarizeSearch(@RequestParam String q) {
+        return ResponseEntity.ok(postService.summarizeSearchResults(q));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<String> handleValidationError(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());

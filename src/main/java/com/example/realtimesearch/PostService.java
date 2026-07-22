@@ -5,11 +5,16 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.web.client.RestClient;
+import org.springframework.http.MediaType;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class PostService {
 
     private final PostRepository postRepository;
+    private final RestClient restClient = RestClient.create();
 
     public PostService(PostRepository postRepository) {
         this.postRepository = postRepository;
@@ -40,5 +45,23 @@ public class PostService {
 
     public List<Post> searchPosts(String keyword) {
         return postRepository.search(keyword);
+    }
+
+    public String summarizeSearchResults(String keyword) {
+        List<Post> posts = postRepository.search(keyword);
+        List<String> contents = posts.stream()
+                .map(Post::getContent)
+                .collect(Collectors.toList());
+
+        Map<String, Object> requestBody = Map.of("posts", contents);
+
+        Map<String, String> response = restClient.post()
+                .uri("http://localhost:8000/summarize")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(requestBody)
+                .retrieve()
+                .body(Map.class);
+
+        return response.get("summary");
     }
 }
