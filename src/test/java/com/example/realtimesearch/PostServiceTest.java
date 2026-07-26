@@ -4,8 +4,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClient;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class PostServiceTest {
 
@@ -15,7 +25,7 @@ class PostServiceTest {
     @BeforeEach
     void setUp() {
         postRepository = new InMemoryPostRepository();
-        postService = new PostService(postRepository);
+        postService = new PostService(postRepository, RestClient.create());
     }
 
     @Test
@@ -73,5 +83,59 @@ class PostServiceTest {
 
         var result = postService.getPostById(created.getId());
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void summarizeSearchResultsReturnsSummary() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://localhost:8000");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        postService = new PostService(postRepository, builder.build());
+        server.expect(requestTo("http://localhost:8000/summarize"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess("{\"summary\":\"summary result\"}", MediaType.APPLICATION_JSON));
+
+        String result = postService.summarizeSearchResults("keyword");
+
+        assertEquals("summary result", result);
+        server.verify();
+    }
+
+    @Test
+    void connectTimeoutIsConvertedToLlmTimeoutException() {
+        RestClient client = RestClient.builder()
+                .requestFactory((uri, method) -> {
+                    throw new SocketTimeoutException("connect timed out");
+                })
+                .build();
+        postService = new PostService(postRepository, client);
+
+        assertThrows(LlmTimeoutException.class,
+                () -> postService.summarizeSearchResults("keyword"));
+    }
+
+    @Test
+    void readTimeoutIsConvertedToLlmTimeoutException() {
+        RestClient client = RestClient.builder()
+                .requestFactory((uri, method) -> {
+                    throw new SocketTimeoutException("read timed out");
+                })
+                .build();
+        postService = new PostService(postRepository, client);
+
+        assertThrows(LlmTimeoutException.class,
+                () -> postService.summarizeSearchResults("keyword"));
+    }
+
+    @Test
+    void nonTimeoutConnectionFailureIsNotConvertedToLlmTimeoutException() {
+        RestClient client = RestClient.builder()
+                .requestFactory((uri, method) -> {
+                    throw new ConnectException("connection refused");
+                })
+                .build();
+        postService = new PostService(postRepository, client);
+
+        assertThrows(ResourceAccessException.class,
+                () -> postService.summarizeSearchResults("keyword"));
     }
 }

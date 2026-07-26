@@ -12,6 +12,15 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(LlmTimeoutException.class)
+    public ResponseEntity<ApiErrorResponse> handleLlmTimeout(LlmTimeoutException ex) {
+        ApiErrorResponse response = new ApiErrorResponse(
+                "LLM APIから制限時間内に応答がありませんでした",
+                Map.of()
+        );
+        return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body(response);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidationError(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new LinkedHashMap<>();
