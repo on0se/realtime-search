@@ -1,6 +1,7 @@
 package com.example.realtimesearch;
 
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -9,15 +10,22 @@ import org.springframework.web.client.RestClient;
 import org.springframework.http.MediaType;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.web.client.ResourceAccessException;
+import java.net.SocketTimeoutException;
+import java.net.http.HttpTimeoutException;
 
 @Service
 public class PostService {
 
     private final PostRepository postRepository;
-    private final RestClient restClient = RestClient.create();
+    private final RestClient restClient;
 
-    public PostService(PostRepository postRepository) {
+    public PostService(
+            PostRepository postRepository,
+            @Qualifier("llmRestClient") RestClient restClient
+    ) {
         this.postRepository = postRepository;
+        this.restClient = restClient;
     }
 
     public Post createPost(Post post) {
@@ -55,13 +63,32 @@ public class PostService {
 
         Map<String, Object> requestBody = Map.of("posts", contents);
 
-        Map<String, String> response = restClient.post()
-                .uri("http://localhost:8000/summarize")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(requestBody)
-                .retrieve()
-                .body(Map.class);
+        Map<String, String> response;
+        try {
+            response = restClient.post()
+                    .uri("/summarize")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(requestBody)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (ResourceAccessException ex) {
+            if (isCausedByTimeout(ex)) {
+                throw new LlmTimeoutException(ex);
+            }
+            throw ex;
+        }
 
         return response.get("summary");
+    }
+
+    private boolean isCausedByTimeout(Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause != null) {
+            if (cause instanceof SocketTimeoutException || cause instanceof HttpTimeoutException) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 }
