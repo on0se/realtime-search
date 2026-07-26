@@ -1,10 +1,17 @@
 package com.example.realtimesearch;
+
+import jakarta.validation.constraints.NotBlank;
+
 import java.time.LocalDateTime;
 
 public class Post {
 
     private Long id;
+
+    @NotBlank(message = "本文は空にできません")
     private String content;
+
+    @NotBlank(message = "投稿者名は空にできません")
     private String author;
     private LocalDateTime createdAt;
 

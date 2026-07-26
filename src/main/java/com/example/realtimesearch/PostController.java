@@ -1,5 +1,6 @@
 package com.example.realtimesearch;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +19,7 @@ public class PostController {
     }
 
     @PostMapping
-    public ResponseEntity<Post> createPost(@RequestBody Post post) {
+    public ResponseEntity<Post> createPost(@Valid @RequestBody Post post) {
         Post created = postService.createPost(post);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
@@ -49,10 +50,5 @@ public class PostController {
     @GetMapping("/search/summary")
     public  ResponseEntity<String> summarizeSearch(@RequestParam String q) {
         return ResponseEntity.ok(postService.summarizeSearchResults(q));
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<String> handleValidationError(IllegalArgumentException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 }
